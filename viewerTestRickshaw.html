@@ -1,0 +1,165 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+
+  <title>My parse example</title>
+  <meta name="description" content="My Parse App">
+  <meta name="viewport" content="width=device-width">
+  <!-- <link rel="stylesheet" href="css/reset.css"> -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.2.0.min.js"></script>
+  <script src="../lecturelessViewer/vendor/d3.v2.js"></script>
+  <script src="../lecturelessViewer/vendor/moment.min.js"></script>
+  
+  <script src="../lecturelessViewer/rickshaw.min.js"></script>
+</head>
+
+<body>
+
+  <div id="main">
+
+  <script type="text/javascript">
+  
+    var motivationPoints = [];
+
+  
+    Parse.initialize("vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ", "HGdB5krOiHY6dLPA7puXZ16b77hmY3Vcilwfvi4E");
+
+    var config = {
+    parseAppId: 'vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ',
+    parseRestKey: 'orS9I7YnEkjdeRAYsrHCo9dQEXkaaULWTiY7N0Br',
+    streamName: 'parse-demo'
+};
+
+
+var getData = function() {
+ 
+    
+    var lastObjectDTG = new Date();
+    var lastM = 0;
+    var lastI = 0;
+    var lastC = 0;
+    
+    //Get the very last entry
+    var query0 = new Parse.Query("TestObject");
+    query0.find({
+      success: function(results) {
+  		
+  		if(results.length>0) {
+
+		  var lastObject = results[0];
+          var lastObjectDTG = moment(lastObject.updatedAt).toDate();
+          lastM = lastObject.get('motivation')
+          
+         }		  
+  
+      },
+		error: function(error) {
+		  alert("Error: " + error.code + " " + error.message);
+		}
+    });
+  
+    //Now filter only last 30 seconds
+
+
+    // Save Expiration - 5 days from now
+    //var d = new Date();
+    //var time = (5 * 24 * 3600 * 1000);
+    // Save Expiration - 1 hour from now
+    var d = new Date();
+    //1 hour:var beginInterval = (1 * 3600 * 1000);
+    //30 seconds
+    var beginInterval = (30 * 1000);
+   
+    var expirationDate = new Date(d.getTime() - (beginInterval));
+
+  
+  var query = new Parse.Query("TestObject");
+  
+  query.greaterThan('updatedAt', expirationDate); 
+
+
+  query.find({
+    success: function(results) {
+        
+        if(results.length>1) {
+
+		  var firstObject = results[0];
+          var firstDTG = moment(firstObject.updatedAt).toDate()
+          //alert(firstDTG)
+          
+          for(var i=0; i < results.length; i++){
+    
+    
+            var object = results[i];
+    
+            var motivation = object.get('motivation');
+            
+            var dtg = moment(object.updatedAt).toDate()
+            
+       		
+            //Need to convert time from the DTG
+            //Going to need an number parser here
+            motivationPoints.push({x:((dtg-firstDTG)/100), y:parseFloat(motivation)});
+    
+            //var txt =  document.createTextNode(object.get('motivation') + ",");
+            //document.getElementById("main").appendChild(txt) ;
+          }
+          //add the last point now!
+          var object = results[results.length-1];
+          var aNow = new Date();
+          motivation = object.get('motivation');
+          motivationPoints.push({x:((aNow-firstDTG)/100), y:parseFloat(motivation)});
+       }  else {
+          	//Add the last know point as nothing is in the window
+          	
+          		motivationPoints.push({x:0, y:parseFloat(lastM)});
+          		motivationPoints.push({x:30, y:parseFloat(lastM)});
+          	}
+          	
+       var yscale = d3.scale.linear().range([0,10]);
+       var graph = new Rickshaw.Graph( {
+                element: document.querySelector("#main"), 
+                width: 500, 
+                height: 200, 
+                max: 12,
+                series: [{
+                    name: "Motivation",
+                    color: 'steelblue',
+                    data: motivationPoints
+                }]
+          });
+          
+          
+          
+          
+          graph.render();   
+
+    },
+    error: function(error) {
+      alert("Error: " + error.code + " " + error.message);
+    }
+  });
+};
+
+  function refresh (timeoutPeriod){ 
+    refresh = setTimeout(function(){window.location.reload(true);},timeoutPeriod); 
+  }
+
+
+$(document).ready(function() {
+
+  getData();
+  
+  //alert("Hello!");
+  
+
+  refresh(3000);
+
+});
+
+  </script>
+</body>
+
+</html>

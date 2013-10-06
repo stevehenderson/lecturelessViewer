@@ -1,0 +1,361 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+
+  <title>lectureLessViewer</title>
+
+  <!-- <link rel="stylesheet" href="css/reset.css"> -->
+  <link href="examples.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.2.0.min.js"></script>
+  
+  <script language="javascript" type="text/javascript" src="jquery.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script src="../lecturelessViewer/vendor/moment.min.js"></script>
+  <script language="javascript" type="text/javascript" src="../lecturelessViewer/initializeParse.js"></script>
+  
+  <script type="text/javascript">
+
+    WINDOW_SIZE=30;	
+	lastHistoricalValueMotivation = 5;
+	lastHistoricalValueInteraction = 5;
+	lastHistoricalValueComprehension = 5;
+		
+	motivationData = [];
+	interactionData = [];
+	comprehensionData = [];
+		
+	$(function() {
+
+		// We use an inline data source in the example, usually data would
+		// be fetched from a server
+
+		
+		for (var i = 0; i < WINDOW_SIZE; ++i) {
+			motivationData[i]=lastHistoricalValueMotivation;
+			interactionData[i] = lastHistoricalValueInteraction;
+			comprehensionData[i] = lastHistoricalValueComprehension;
+		}
+		
+		/*
+		*
+		* //Initialize parse	
+		* Parse.initialize("parse-application-key", "javascript-key");
+		*
+		*	var config = {
+		*		parseAppId: 'parse-app-id',
+		*		parseRestKey: 'parse-rest-key',
+		*		streamName: 'parse-demo'
+		*	};
+		*  The following object file contains this code for 
+		*  purposes of not including it in the git repos
+		*/
+		InitializeParse.init();
+		
+		function getMotivationData() {
+			var res = [];
+			res.push(0,lastHistoricalValueMotivation);
+			for (var i = 1; i <= WINDOW_SIZE; ++i) {
+				 res.push([i-1,motivationData[WINDOW_SIZE-i]]);
+			}
+			return res;
+		}
+	
+		function getComprehensionData() {
+			var res = [];
+			res.push(0,lastHistoricalValueComprehension);
+			for (var i = 1; i <= WINDOW_SIZE; ++i) {
+				 res.push([i-1,comprehensionData[WINDOW_SIZE-i]]);
+			}
+			return res;
+		}
+		
+		function getInteractionData() {
+			var res = [];
+			res.push(0,lastHistoricalValueInteraction);
+			for (var i = 1; i <= WINDOW_SIZE; ++i) {
+				 res.push([i-1,interactionData[WINDOW_SIZE-i]]);
+			}
+			return res;
+		}
+		
+		/**
+		**************************************************	
+		*/
+		
+		function updateData() {
+		
+			var WINDOW_SIZE = 30;
+			
+			var lastObjectDTG = new Date();
+			var lastM = 0;
+			var lastI = 0;
+			var lastC = 0;
+			
+			
+			
+			var d = new Date();
+			var beginInterval = (WINDOW_SIZE * 1000);
+   			var expirationDate = new Date(d.getTime() - (beginInterval));
+			var query = new Parse.Query("TestObject");
+			query.greaterThan('updatedAt', expirationDate); 
+			query.find({
+				success: function(results) {
+
+					var sumVI = [];
+					var countVI = [];
+					var avgVI = [];
+			
+					var sumVM = [];
+					var countVM = [];
+					var avgVM = [];
+			
+					var sumVC = [];
+					var countVC = [];
+					var avgVC = [];
+			
+					for(var i=0 ; i < WINDOW_SIZE; i++) {
+						sumVI[i]=0;
+						countVI[i]=0;
+						avgVI[i]=lastHistoricalValueInteraction;
+						
+						sumVC[i]=0;
+						countVC[i]=0;
+						avgVC[i]=lastHistoricalValueComprehension;
+						
+						sumVM[i]=0;
+						countVM[i]=0;
+						avgVM[i]=lastHistoricalValueMotivation;
+						
+					}
+
+					if(results.length>0) {
+					  var dnow = new Date();
+					  var firstObject = results[0];
+					  var firstDTG = moment(firstObject.updatedAt).toDate()
+					  //alert(firstDTG)
+		  
+					  for(var i=0; i < results.length; i++){
+						var object = results[i];
+						var metricMotivation = object.get("motivation");
+						var metricComprehension = object.get("comprehension");
+						var metricInteraction = object.get("interaction");
+						
+						var dtg = moment(object.updatedAt).toDate();
+						var timeDiff = Math.floor((dnow-dtg)/1000);
+						
+						//Need to convert time from the DTG
+						//Going to need an number parser here
+						var newMotivation = parseFloat(metricMotivation);
+						var newComprehension = parseFloat(metricComprehension);
+						var newInteraction = parseFloat(metricInteraction);
+						
+						//console.log("dtg " + dtg + " was " + timeDiff + " ago..");
+						if(timeDiff < WINDOW_SIZE) {
+							sumVM[timeDiff]=sumVM[timeDiff]+newMotivation;
+							countVM[timeDiff]=countVM[timeDiff]+1;
+							
+							sumVC[timeDiff]=sumVC[timeDiff]+newComprehension;
+							countVC[timeDiff]=countVC[timeDiff]+1;
+							
+							sumVI[timeDiff]=sumVI[timeDiff]+newInteraction;
+							countVI[timeDiff]=countVI[timeDiff]+1;
+							
+							
+							//console.log("countV[" + timeDiff + "] now " + countV[timeDiff]);
+						}					
+					  }
+					
+					  //aggregate everything				
+					  avgVI[WINDOW_SIZE-1] = lastHistoricalValueInteraction;
+					  avgVC[WINDOW_SIZE-1] = lastHistoricalValueComprehension;
+		 			  avgVM[WINDOW_SIZE-1] = lastHistoricalValueMotivation;
+		
+					  //Calculate averages and fill gaps
+					  for(var i = (WINDOW_SIZE-2); i >= 0; i--) {
+			
+						if(countVM[i] > 0) {
+							//console.log("found a motivation average at "  +i);
+							avgVM[i] = sumVM[i]/countVM[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVM[i] = avgVM[i+1];
+					    }
+					    
+					    if(countVC[i] > 0) {
+							//console.log("found a comprehension average at "  +i);
+							avgVC[i] = sumVC[i]/countVC[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVC[i] = avgVC[i+1];
+							
+					    }
+					    
+					    if(countVI[i] > 0) {
+							//console.log("found an interaction average at "  +i);
+							avgVI[i] = sumVI[i]/countVI[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVI[i] = avgVI[i+1];
+					    }
+					  }
+					  
+					  lastHistoricalValueInteraction = avgVI[WINDOW_SIZE-2];
+					  lastHistoricalValueComprehension = avgVC[WINDOW_SIZE-2];
+					  lastHistoricalValueMotivation = avgVM[WINDOW_SIZE-2];
+					  
+					  
+					  for (var i = 0; i < WINDOW_SIZE; ++i) {
+						 motivationData[i]=avgVM[i];
+						 interactionData[i]=avgVI[i];
+						 comprehensionData[i]=avgVC[i];
+					  }
+					
+				 }  //results > 0
+				 else {
+				 	
+				 	//No results
+				 
+				 }		
+				
+				 
+				},
+				error: function(error) {
+					alert("Error: " + error.code + " " + error.message);
+				}
+			});
+			
+		};
+
+
+
+		function getData2() {
+
+			var res = [];
+			for (var i = 0; i < 30; ++i) {
+				res.push([i, 5]);
+			}
+			console.log("returningRes2 size " + res.length);
+			return res;
+		}
+
+		
+		var updateInterval = 3000;
+		
+
+		var dataset = [
+			{
+				label: "Motivation",
+				data: getMotivationData(),
+				yaxis: 2,
+				color: "#FF0000",
+				points: { symbol: "circle", fillColor: "#FF0000", show: true },
+				lines: { show: true }
+			}, {
+				label: "Comprehension",
+				data: getComprehensionData(),
+				yaxis: 1,
+				color: "#0062FF",
+				points: { symbol: "circle", fillColor: "#0062FF", show: true },
+				lines: {show:true, fill:true}
+			}, {
+				label: "Interaction",
+				data: getInteractionData(),
+				yaxis: 3,
+				color: "#319400",
+				points: { symbol: "circle", fillColor: "#319400", show: true },
+				lines: { show: true }
+			}
+		];
+
+
+		var plot = $.plot("#placeholder", dataset , {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 12
+			},
+			xaxis: {
+				
+				show:  false
+			}
+		});
+
+		function update() {
+		
+			console.log("updating..");
+			updateData("motivation");
+			
+			var dataset = [
+			{
+				label: "Motivation",
+				data: getMotivationData(),
+				yaxis: 2,
+				color: "#FF0000",
+				points: { symbol: "circle", fillColor: "#FF0000", show: true },
+				lines: { show: true }
+			}, {
+				label: "Comprehension",
+				data: getComprehensionData(),
+				yaxis: 1,
+				color: "#0062FF",
+				points: { symbol: "circle", fillColor: "#0062FF", show: true },
+				lines: {show:true}
+			}, {
+				label: "Interaction",
+				data: getInteractionData(),
+				yaxis: 3,
+				color: "#319400",
+				points: { symbol: "circle", fillColor: "#319400", show: true },
+				lines: { show: true }
+			}
+		];
+			
+		
+			plot.setData(dataset);
+
+			// Since the axes don't change, we don't need to call plot.setupGrid()
+ 			plot.setupGrid();
+			plot.draw();
+			setTimeout(update, updateInterval);
+		}
+
+		update();
+
+		// Add the Flot version string to the footer
+
+		$("#footer").prepend("Flot " + $.plot.version + " &ndash; ");
+	});
+
+	</script>
+  
+  
+  
+</head>
+
+<body>
+
+	<div id="header">
+		<h2>Real-time updates</h2>
+	</div>
+
+	<div id="content">
+
+		<div class="demo-container">
+			<div id="placeholder" class="demo-placeholder"></div>
+		</div>
+
+		<p>You can update a chart periodically to get a real-time effect by using a timer to insert the new data in the plot and redraw it.</p>
+
+		<p>Time between updates: <input id="updateInterval" type="text" value="" style="text-align: right; width:5em"> milliseconds</p>
+
+	</div>
+
+	<div id="footer">
+		Copyright &copy; 2007 - 2013 IOLA and Ole Laursen
+	</div>
+
+</body>
+</html>

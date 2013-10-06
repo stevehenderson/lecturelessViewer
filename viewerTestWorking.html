@@ -1,0 +1,224 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+
+  <title>lectureLessViewer</title>
+
+  <!-- <link rel="stylesheet" href="css/reset.css"> -->
+  <link href="examples.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.2.0.min.js"></script>
+  
+  <script language="javascript" type="text/javascript" src="jquery.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script src="../lecturelessViewer/vendor/moment.min.js"></script>
+  <script type="text/javascript">
+
+    WINDOW_SIZE=30;	
+	lastHistoricalValue = 5;
+	
+	motivationData = [];
+	
+	
+	
+	$(function() {
+
+		// We use an inline data source in the example, usually data would
+		// be fetched from a server
+
+		
+		for (var i = 0; i < WINDOW_SIZE; ++i) {
+			motivationData[i]=lastHistoricalValue;
+		}
+		
+		//Initialize parse	
+		Parse.initialize("vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ", "HGdB5krOiHY6dLPA7puXZ16b77hmY3Vcilwfvi4E");
+
+		var config = {
+			parseAppId: 'vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ',
+			parseRestKey: 'orS9I7YnEkjdeRAYsrHCo9dQEXkaaULWTiY7N0Br',
+			streamName: 'parse-demo'
+		};
+	
+		function getMotivationData() {
+			var res = [];
+			for (var i = 0; i < WINDOW_SIZE; ++i) {
+				 res.push([i,motivationData[i]]);
+			}
+			return res;
+			
+		}
+		
+		
+		
+
+		function updateData(dimension) {
+		
+			var WINDOW_SIZE = 30;
+			
+			var lastObjectDTG = new Date();
+			var lastM = 0;
+			var lastI = 0;
+			var lastC = 0;
+			
+			
+			
+			var d = new Date();
+			var beginInterval = (WINDOW_SIZE * 1000);
+   			var expirationDate = new Date(d.getTime() - (beginInterval));
+			var query = new Parse.Query("TestObject");
+			query.greaterThan('updatedAt', expirationDate); 
+			query.find({
+				success: function(results) {
+
+					var sumV = [];
+					var countV = [];
+					var avgV = [];
+					var dog = "dog";
+			
+					for(var i=0 ; i < WINDOW_SIZE; i++) {
+						sumV[i]=0;
+						countV[i]=0;
+						avgV[i]=lastHistoricalValue;
+						
+					}
+
+					if(results.length>0) {
+					  dog = "cat";
+					  var dnow = new Date();
+					  var firstObject = results[0];
+					  var firstDTG = moment(firstObject.updatedAt).toDate()
+					  //alert(firstDTG)
+		  
+					  for(var i=0; i < results.length; i++){
+						var object = results[i];
+						var metric = object.get(dimension);
+						var dtg = moment(object.updatedAt).toDate();
+						var timeDiff = Math.floor((dnow-dtg)/1000);
+						
+						//Need to convert time from the DTG
+						//Going to need an number parser here
+						var mm = parseFloat(metric);
+						//console.log("dtg " + dtg + " was " + timeDiff + " ago..");
+						if(timeDiff < WINDOW_SIZE) {
+							sumV[timeDiff]=sumV[timeDiff]+mm;
+							countV[timeDiff]=countV[timeDiff]+1;
+							console.log("countV[" + timeDiff + "] now " + countV[timeDiff]);
+						}					
+					  }
+					
+					  //aggregate everything				
+					  avgV[WINDOW_SIZE] = lastHistoricalValue;
+		
+					  //Calculate averages and fill gaps
+					  for(var i = (WINDOW_SIZE-1); i >= 0; i--) {
+			
+						if(countV[i] > 0) {
+							console.log("found an average at "  +i);
+							avgV[i] = sumV[i]/countV[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgV[i] = avgV[i+1];
+					    }
+					  }
+					for (var i = 0; i < WINDOW_SIZE; ++i) {
+						 motivationData[i]=avgV[i];
+					}
+					
+				 }  //results > 0
+				 else {
+				 	
+				 	//No results
+				 
+				 }		
+				
+				 
+				},
+				error: function(error) {
+					alert("Error: " + error.code + " " + error.message);
+				}
+			});
+			
+		};
+
+
+
+		function getData2() {
+
+			var res = [];
+			for (var i = 0; i < 30; ++i) {
+				res.push([i, 5]);
+			}
+			console.log("returningRes2 size " + res.length);
+			return res;
+		}
+
+		
+		var updateInterval = 3000;
+		
+
+		var plot = $.plot("#placeholder", [ getMotivationData() ], {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 12
+			},
+			xaxis: {
+				
+				show:  false
+			}
+		});
+
+		function update() {
+		
+			console.log("updating..");
+			updateData("motivation");
+			
+		
+			plot.setData([getMotivationData()]);
+
+			// Since the axes don't change, we don't need to call plot.setupGrid()
+ 			plot.setupGrid();
+			plot.draw();
+			setTimeout(update, updateInterval);
+		}
+
+		update();
+
+		// Add the Flot version string to the footer
+
+		$("#footer").prepend("Flot " + $.plot.version + " &ndash; ");
+	});
+
+	</script>
+  
+  
+  
+</head>
+
+<body>
+
+	<div id="header">
+		<h2>Real-time updates</h2>
+	</div>
+
+	<div id="content">
+
+		<div class="demo-container">
+			<div id="placeholder" class="demo-placeholder"></div>
+		</div>
+
+		<p>You can update a chart periodically to get a real-time effect by using a timer to insert the new data in the plot and redraw it.</p>
+
+		<p>Time between updates: <input id="updateInterval" type="text" value="" style="text-align: right; width:5em"> milliseconds</p>
+
+	</div>
+
+	<div id="footer">
+		Copyright &copy; 2007 - 2013 IOLA and Ole Laursen
+	</div>
+
+</body>
+</html>
