@@ -1,0 +1,28 @@
+/**
+*   This is a single js file to abstract the Parse.com credientials
+*
+*   include in a script tag before you intended to use it.
+*
+*   <script language="javascript" type="text/javascript" src="initializeParse.js"></script>
+*   
+*   Then us like this:
+*
+*	InitializeParse.init();
+*
+*/
+var InitializeParse = new(function()
+{
+    this.init = function()
+    {
+		//Initialize parse	
+		Parse.initialize("vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ", "HGdB5krOiHY6dLPA7puXZ16b77hmY3Vcilwfvi4E");
+
+		var config = {
+			parseAppId: 'vJsvyNg9O9HHbFspe3NM6ZMkQXnBSWTQDghC0qPZ',
+			parseRestKey: 'orS9I7YnEkjdeRAYsrHCo9dQEXkaaULWTiY7N0Br',
+			streamName: 'parse-demo'
+		};
+	
+	}
+})();
+

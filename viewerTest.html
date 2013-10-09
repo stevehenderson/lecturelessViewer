@@ -16,10 +16,11 @@
   
   <script type="text/javascript">
 
-    WINDOW_SIZE=30;	
-	lastHistoricalValueMotivation = 5;
-	lastHistoricalValueInteraction = 5;
-	lastHistoricalValueComprehension = 5;
+    //Update
+    WINDOW_SIZE=60;	
+	lastHistoricalValueMotivation = 0;
+	lastHistoricalValueInteraction = 0;
+	lastHistoricalValueComprehension = 0;
 		
 	motivationData = [];
 	interactionData = [];
@@ -85,7 +86,7 @@
 		
 		function updateData() {
 		
-			var WINDOW_SIZE = 30;
+			
 			
 			var lastObjectDTG = new Date();
 			var lastM = 0;
@@ -229,16 +230,6 @@
 
 
 
-		function getData2() {
-
-			var res = [];
-			for (var i = 0; i < 30; ++i) {
-				res.push([i, 5]);
-			}
-			console.log("returningRes2 size " + res.length);
-			return res;
-		}
-
 		
 		var updateInterval = 3000;
 		
@@ -247,23 +238,23 @@
 			{
 				label: "Motivation",
 				data: getMotivationData(),
-				yaxis: 2,
-				color: "#FF0000",
-				points: { symbol: "circle", fillColor: "#FF0000", show: true },
+				yaxis: 1,
+				color: "#FF00FF",
+				points: { symbol: "circle", fillColor: "#FF0000", show: false },
 				lines: { show: true }
 			}, {
 				label: "Comprehension",
 				data: getComprehensionData(),
 				yaxis: 1,
-				color: "#0062FF",
-				points: { symbol: "circle", fillColor: "#0062FF", show: true },
+				color: "#000000",
+				points: { symbol: "circle", fillColor: "#0062FF", show: false },
 				lines: {show:true, fill:true}
 			}, {
 				label: "Interaction",
 				data: getInteractionData(),
-				yaxis: 3,
-				color: "#319400",
-				points: { symbol: "circle", fillColor: "#319400", show: true },
+				yaxis: 1,
+				color: "#0000FF",
+				points: { symbol: "circle", fillColor: "#319400", show: false },
 				lines: { show: true }
 			}
 		];
@@ -275,11 +266,13 @@
 			},
 			yaxis: {
 				min: 0,
-				max: 12
+				max: 14
 			},
 			xaxis: {
+				tickLength: 10,
 				
 				show:  false
+				
 			}
 		});
 
@@ -292,23 +285,23 @@
 			{
 				label: "Motivation",
 				data: getMotivationData(),
-				yaxis: 2,
-				color: "#FF0000",
-				points: { symbol: "circle", fillColor: "#FF0000", show: true },
+				yaxis: 1,
+				color: "#FF00FF",
+				points: { symbol: "circle", fillColor: "#FF00FF", show: false },
 				lines: { show: true }
 			}, {
 				label: "Comprehension",
 				data: getComprehensionData(),
 				yaxis: 1,
-				color: "#0062FF",
-				points: { symbol: "circle", fillColor: "#0062FF", show: true },
+				color: "#000000",
+				points: { symbol: "circle", fillColor: "#000000", show: false },
 				lines: {show:true}
 			}, {
 				label: "Interaction",
 				data: getInteractionData(),
-				yaxis: 3,
-				color: "#319400",
-				points: { symbol: "circle", fillColor: "#319400", show: true },
+				yaxis: 1,
+				color: "#0000FF",
+				points: { symbol: "circle", fillColor: "#0000FF", show: false },
 				lines: { show: true }
 			}
 		];
@@ -317,7 +310,7 @@
 			plot.setData(dataset);
 
 			// Since the axes don't change, we don't need to call plot.setupGrid()
- 			plot.setupGrid();
+ 			//plot.setupGrid();
 			plot.draw();
 			setTimeout(update, updateInterval);
 		}
@@ -326,7 +319,7 @@
 
 		// Add the Flot version string to the footer
 
-		$("#footer").prepend("Flot " + $.plot.version + " &ndash; ");
+		$("#footer").prepend("Powered by Flot " + $.plot.version + " &ndash; ");
 	});
 
 	</script>
@@ -338,23 +331,21 @@
 <body>
 
 	<div id="header">
-		<h2>Real-time updates</h2>
+		<h2>lectureLess Real-time updates</h2>
 	</div>
 
 	<div id="content">
-
+		
 		<div class="demo-container">
 			<div id="placeholder" class="demo-placeholder"></div>
 		</div>
 
-		<p>You can update a chart periodically to get a real-time effect by using a timer to insert the new data in the plot and redraw it.</p>
-
-		<p>Time between updates: <input id="updateInterval" type="text" value="" style="text-align: right; width:5em"> milliseconds</p>
-
+		
+		
 	</div>
 
 	<div id="footer">
-		Copyright &copy; 2007 - 2013 IOLA and Ole Laursen
+		
 	</div>
 
 </body>
