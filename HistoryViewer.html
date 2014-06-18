@@ -1,0 +1,414 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+
+  <title>lectureLessViewer</title>
+
+  <!-- <link rel="stylesheet" href="css/reset.css"> -->
+  <link href="examples.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.2.0.min.js"></script>
+  
+  <script language="javascript" type="text/javascript" src="jquery.js"></script>
+  <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+  <script src="../lecturelessViewer/vendor/moment.min.js"></script>
+  <script language="javascript" type="text/javascript" src="../lecturelessViewer/initializeParse.js"></script>
+  
+  <script type="text/javascript">
+
+	/////////////////////////////////////////////////////
+    ///// 				CONSTANTS
+    /////////////////////////////////////////////////////
+    
+    //Window size in seconds
+    WINDOW_SIZE=3000;	
+    UPDATE_INTERVAL_MS=950;
+    
+    /////////////////////////////////////////////////////
+    ///// 				VARIABLES
+    /////////////////////////////////////////////////////
+    
+	lastHistoricalValueMotivation = 0;
+	lastHistoricalValueInteraction = 0;
+	lastHistoricalValueComprehension = 0;
+		
+	motivationData = [];
+	interactionData = [];
+	comprehensionData = [];
+	
+	//First run flag
+	firstRun = true;
+	
+	//The position of the playback
+	playHead=0;
+	
+	//PLayback mode will play the databack at speed
+	playBackMode=true;
+		
+		
+	$(function() {
+
+
+		/////////////////////////////////////////////////////
+    	///// 				FUNCTIONS
+    	/////////////////////////////////////////////////////
+    	 /*
+    	 * Gets the motivation data once populated
+    	 */
+    	function getMotivationData() {
+			var res = [];
+			res.push(0,lastHistoricalValueMotivation);
+			if(playBackMode) {
+				for (var i = 1; i <= playHead; ++i) {
+					 res.push([i,motivationData[i]]);
+				}
+			} else {
+				for (var i = 1; i <= WINDOW_SIZE; ++i) {
+					 res.push([i-1,motivationData[i]]);
+				}
+			}
+			return res;
+		}
+	
+		/*
+    	 * Gets the comprehension data once populated
+    	 */
+		function getComprehensionData() {
+			var res = [];
+			res.push(0,lastHistoricalValueComprehension);
+			if(playBackMode) {
+				for (var i = 1; i <= playHead; ++i) {
+					 res.push([i,comprehensionData[i]]);
+				}
+			} else {
+				for (var i = 1; i <= WINDOW_SIZE; ++i) {
+					 res.push([i-1,comprehensionData[i]]);
+				}
+			}
+			return res;
+		}
+		
+		/*
+    	 * Gets the interaction data once populated
+    	 */
+		function getInteractionData() {
+			var res = [];
+			res.push(0,lastHistoricalValueInteraction);
+			if(playBackMode) {
+				for (var i = 1; i <= playHead; ++i) {
+					 res.push([i,interactionData[i]]);
+				}
+			} else {
+				for (var i = 1; i <= WINDOW_SIZE; ++i) {
+					 res.push([i-1,interactionData[i]]);
+				}
+			}
+			return res;
+		}
+		
+		
+		/*
+		*  This method simulates getting the requested updating the dataset
+		*/
+		function getDataSim() {
+		
+			//Calculate the size of the fetch window
+			//TODO:  Just subtract the end from beginning time..
+			var fetchWindowSize = WINDOW_SIZE;
+				
+			//console.log("fetching data..");
+			//Clear the data buffers before we average	
+			//for(var i=0 ; i < fetchWindowSize; i++) {
+			//	motivationData[i]=10*Math.random();
+			//	interactionData[i]=10*Math.random();
+			//	comprehensionData[i]=10*Math.random();
+			//}
+			//motivationData[i]=10*Math.random();
+			//interactionData[i]=10*Math.random();
+			comprehensionData[0]=2;
+			comprehensionData[2]=0;
+			comprehensionData[1*60]=3;
+			comprehensionData[8*60]=6;
+			comprehensionData[9*60]=2;
+
+			
+			
+			
+				
+		}
+		
+		function getData() {
+			//getDataSim();
+			//return;
+		
+			var query = new Parse.Query("TestObject");
+			var startDate = new Date("2014-06-17T16:50:00.000Z");
+			var endDate = new Date("2014-06-17T16:59:00.000Z");
+			
+			query.greaterThan('updatedAt', startDate); 
+			query.lessThan('updatedAt', endDate);
+			query.find({
+				success: function(results) {
+
+					var sumVI = [];
+					var countVI = [];
+					var avgVI = [];
+			
+					var sumVM = [];
+					var countVM = [];
+					var avgVM = [];
+			
+					var sumVC = [];
+					var countVC = [];
+					var avgVC = [];
+		
+					//Clear the data buffers before we average	
+					for(var i=0 ; i < WINDOW_SIZE; i++) {
+						sumVI[i]=0;
+						countVI[i]=0;
+						avgVI[i]=lastHistoricalValueInteraction;
+						
+						sumVC[i]=0;
+						countVC[i]=0;
+						avgVC[i]=lastHistoricalValueComprehension;
+						
+						sumVM[i]=0;
+						countVM[i]=0;
+						avgVM[i]=lastHistoricalValueMotivation;
+					}
+
+					if(results.length>0) {
+					  
+					  var firstObject = results[0];
+					  var firstDTG = moment(firstObject.updatedAt).toDate()
+					  //alert(firstDTG)
+		  
+					  for(var i=0; i < results.length; i++){
+						var object = results[i];
+						var metricMotivation = object.get("motivation");
+						var metricComprehension = object.get("comprehension");
+						var metricInteraction = object.get("interaction");
+						
+						//Calculate how long ago the data occurred to nearest second
+						var dtg = moment(object.updatedAt).toDate();
+						var timeDiff = Math.floor((dtg-startDate)/1000);
+						
+						//Need to convert time from the DTG
+						//Going to need an number parser here
+						var newMotivation = parseFloat(metricMotivation);
+						var newComprehension = parseFloat(metricComprehension);
+						var newInteraction = parseFloat(metricInteraction);
+						
+						console.log("dtg " + dtg + " was " + timeDiff + " after startDate..");
+						if(timeDiff < WINDOW_SIZE*1000000) {
+							sumVM[timeDiff]=sumVM[timeDiff]+newMotivation;
+							countVM[timeDiff]=countVM[timeDiff]+1;
+							
+							sumVC[timeDiff]=sumVC[timeDiff]+newComprehension;
+							countVC[timeDiff]=countVC[timeDiff]+1;
+							
+							sumVI[timeDiff]=sumVI[timeDiff]+newInteraction;
+							countVI[timeDiff]=countVI[timeDiff]+1;
+							
+							
+							//console.log("countV[" + timeDiff + "] now " + countV[timeDiff]);
+						}					
+					  }
+					
+					
+		
+					  //Calculate averages and fill gaps
+					  for(var i = 1; i< WINDOW_SIZE; i++) {
+			
+						if(countVM[i] > 0) {
+							//console.log("found a motivation average at "  +i);
+							avgVM[i] = sumVM[i]/countVM[i];
+						} else {
+							//No value copy the next one upstream
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVM[i] = avgVM[i-1];
+					    }
+					    
+					    if(countVC[i] > 0) {
+							//console.log("found a comprehension average at "  +i);
+							avgVC[i] = sumVC[i]/countVC[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVC[i] = avgVC[i-1];
+							
+					    }
+					    
+					    if(countVI[i] > 0) {
+							//console.log("found an interaction average at "  +i);
+							avgVI[i] = sumVI[i]/countVI[i];
+						} else {
+							//console.log("looking up.." + i + "= " + countV[i]);
+							avgVI[i] = avgVI[i-1];
+					    }
+					  }
+					  
+					  
+					  
+					  for (var i = 0; i < WINDOW_SIZE; ++i) {
+						 motivationData[i]=avgVM[i];
+						 interactionData[i]=avgVI[i];
+						 comprehensionData[i]=avgVC[i];
+					  }
+				 }  //results > 0
+				 else {
+				 	console.log("No results.");
+				 	//No results
+				 }		
+				},
+				error: function(error) {
+					alert("Error: " + error.code + " " + error.message);
+				}
+			});
+		}
+		
+		
+	
+		function updatePlot() {
+		
+			//console.log("updating..");
+			
+			if(firstRun) {
+				getData();
+				firstRun=false;
+			}
+			
+			var dataset = [
+				{
+					label: "Motivation",
+					data: getMotivationData(),
+					xaxis: 1,
+					yaxis: 1,
+					color: "#FF00FF",
+					points: { symbol: "circle", fillColor: "#FF00FF", show: false },
+					lines: { show: true }
+				}, {
+					label: "Comprehension",
+					data: getComprehensionData(),
+					yaxis: 1,
+					color: "#000000",
+					points: { symbol: "circle", fillColor: "#000000", show: false },
+					lines: {show:true}
+				}, {
+					label: "Interaction",
+					data: getInteractionData(),
+					yaxis: 1,
+					color: "#0000FF",
+					points: { symbol: "circle", fillColor: "#0000FF", show: false },
+					lines: { show: true }
+				}
+			];
+			
+			plot.setData(dataset);
+
+			// Since the axes don't change, we don't need to call plot.setupGrid()
+ 			//plot.setupGrid();
+			
+			//Actually render the plot
+			plot.draw();
+			
+			if(playHead < WINDOW_SIZE) playHead=playHead+1;
+			//console.log("playhead at:" + playHead);
+
+			//Set up the next refresh
+			setTimeout(updatePlot, updateInterval);
+		}
+		
+    	/////////////////////////////////////////////////////
+    	///// 				MAIN BODY
+    	/////////////////////////////////////////////////////
+		
+		InitializeParse.init();
+		if(firstRun) {
+			getData();
+			firstRun=false;	
+		}
+		var updateInterval = UPDATE_INTERVAL_MS;
+		
+		/*
+		* Fill an initial dataset...TODO:  remove later and just use method
+		*/
+		var dataset = [
+			{
+				label: "Motivation",
+				data: getMotivationData(),
+				xaxis: 1,
+				yaxis: 1,
+				color: "#FF00FF",
+				points: { symbol: "circle", fillColor: "#FF0000", show: false },
+				lines: { show: true }
+			}, {
+				label: "Comprehension",
+				data: getComprehensionData(),
+				yaxis: 1,
+				color: "#000000",
+				points: { symbol: "circle", fillColor: "#0062FF", show: false },
+				lines: {show:true, fill:true}
+			}, {
+				label: "Interaction",
+				data: getInteractionData(),
+				yaxis: 1,
+				color: "#0000FF",
+				points: { symbol: "circle", fillColor: "#319400", show: false },
+				lines: { show: true }
+			}
+		];
+
+		someFunc = function(val, axis){
+		   var mins = Math.floor(val/60);
+		   var secf = val-mins;
+		   var seconds = 59*secf;
+		   
+		   return "" + mins + ":00";
+		}
+		
+		//Plot the first one
+		var plot = $.plot("#placeholder", dataset , {
+			series: {
+				shadowSize: 0	// Drawing is faster without shadows
+			},
+			yaxis: {
+				min: 0,
+				max: 14
+			},
+			xaxis: {
+				ticks: 15,
+				min: 0,
+				max: WINDOW_SIZE,
+				tickFormatter: someFunc,
+				show:  true
+				
+			}
+		});
+
+		//Start the refresh
+		updatePlot();
+		
+		// Add the Flot version string to the footer
+
+		$("#footer").prepend("Powered by Flot " + $.plot.version + " &ndash; ");
+	});
+
+	</script>
+  
+  
+  
+</head>
+
+<body>
+	<div id="header">
+		<h2>lectureLess History Viewer</h2>
+	</div>
+	<div id="content">
+		<div class="demo-container">
+			<div id="placeholder" class="demo-placeholder"></div>
+		</div>
+	</div>
+	<div id="footer">
+	</div>
+</body>
+</html>
